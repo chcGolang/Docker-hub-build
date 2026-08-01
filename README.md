@@ -20,9 +20,9 @@
 
 | 项目 | 镜像 | 端口 | 部署文档 |
 |------|------|------|----------|
-| opencode | `<账号>/opencode` | 4096 | [docs/部署使用.md#opencode](docs/部署使用.md#opencode) |
+| opencode | `chcgolang/opencode` | 4096 | [docs/部署使用.md#opencode](docs/部署使用.md#opencode) |
 
-> `<账号>` 为 Docker Hub 用户名，在 Actions Secrets `DOCKERHUB_USERNAME` 中配置。
+> `chcgolang` 为 Docker Hub 用户名，在 Actions Secrets `DOCKERHUB_USERNAME` 中配置。
 
 ## CI 工作流说明
 
@@ -30,7 +30,7 @@
 - **自动发现**：扫描所有含 `Dockerfile` 的目录，逐个构建
 - **多架构**：`linux/amd64` + `linux/arm64`（buildx + QEMU）
 - **版本检测**：每个项目运行自身 `version.sh` 取版本号；定时任务时若该版本 tag 已在 Docker Hub 存在则跳过
-- **镜像 tag**：`<账号>/<项目>:latest` + `<账号>/<项目>:<版本号>`
+- **镜像 tag**：`chcgolang/<项目>:latest` + `chcgolang/<项目>:<版本号>`
 - **构建参数**：`OPENCODE_VERSION=<版本号>` 统一传给所有项目（不需要的项目可忽略该 arg）
 
 ## 新增项目

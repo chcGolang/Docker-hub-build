@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - id: list
         run: |
-          projects=$(find . -name Dockerfile -printf '%h\n' | sed 's|^\./||' | sort | jq -R -s 'split("\n") | map(select(length > 0))')
+          projects=$(find . -name Dockerfile -printf '%h\n' | sed 's|^\./||' | sort | jq -c -R -s 'split("\n") | map(select(length > 0))')
           echo "projects=$projects" >> "$GITHUB_OUTPUT"
 
   build:

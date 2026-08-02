@@ -20,7 +20,10 @@ RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g; s|security.debian.o
 
 ENV PATH="/root/.opencode/bin:${PATH}"
 
+COPY watchdog.sh /usr/local/bin/watchdog.sh
+RUN chmod +x /usr/local/bin/watchdog.sh
+
 EXPOSE 4096
 
 WORKDIR /workspace
-CMD ["opencode", "web", "--hostname", "0.0.0.0", "--port", "4096"]
+CMD ["/usr/local/bin/watchdog.sh"]

@@ -21,6 +21,7 @@
 | 项目 | 镜像 | 端口 | 部署文档 |
 |------|------|------|----------|
 | opencode | `chcgolang/opencode` | 4096 | [docs/部署使用.md#opencode](docs/部署使用.md#opencode) |
+| subconverter | `chcgolang/subconverter` | 25500 | [docs/部署使用.md#subconverter](docs/部署使用.md#subconverter) |
 
 > `chcgolang` 为 Docker Hub 用户名，在 Actions Secrets `DOCKERHUB_USERNAME` 中配置。
 

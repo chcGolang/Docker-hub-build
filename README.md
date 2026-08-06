@@ -30,7 +30,7 @@
 - **触发方式**：定时（每天 UTC 02:00）+ 手动 `workflow_dispatch`，push 不触发
 - **自动发现**：扫描所有含 `Dockerfile` 的目录，逐个构建
 - **多架构**：`linux/amd64` + `linux/arm64`（buildx + QEMU）
-- **版本检测**：每个项目运行自身 `version.sh` 取版本号；定时任务时若该版本 tag 已在 Docker Hub 存在则跳过
+- **版本检测**：每个项目运行自身 `version.sh` 取版本号；若该版本 tag 已在 Docker Hub 存在则跳过（定时与手动触发行为一致）
 - **镜像 tag**：`chcgolang/<项目>:latest` + `chcgolang/<项目>:<版本号>`
 - **构建参数**：`OPENCODE_VERSION=<版本号>` 统一传给所有项目（不需要的项目可忽略该 arg）
 

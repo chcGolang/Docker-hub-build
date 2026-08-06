@@ -84,8 +84,7 @@ chcgolang/<项目名>:<版本号>
 - 使用 `DOCKERHUB_USERNAME`、`DOCKERHUB_TOKEN` 登录 Docker Hub。
 - 通过每个项目的 `version.sh` 获取版本。
 - 每天 UTC 02:00 定时检查更新。
-- 定时构建时，如果版本 tag 已存在则跳过。
-- 手动触发 workflow 时无条件重新构建。
+- 无论定时还是手动触发，如果版本 tag 已存在则跳过。
 
 新增项目不需要修改 workflow。只有当新项目需要现有项目约定无法表达的行为时，才允许修改 workflow，并且必须先询问用户。
 

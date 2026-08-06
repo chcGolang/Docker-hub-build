@@ -51,7 +51,6 @@ jobs:
 
       - name: Skip if version already published
         id: skip
-        if: github.event_name == 'schedule'
         env:
           REPO: ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.project }}
         run: |

@@ -4,15 +4,11 @@ set -euo pipefail
 BIN="/root/.opencode/bin/opencode"
 PORT="${OPENCODE_PORT:-4096}"
 POLL="${OPENCODE_WATCH_POLL_SECONDS:-30}"
-IDLE_MIN="${OPENCODE_WATCH_IDLE_MINUTES:-30}"
-MAX_WAIT_MIN="${OPENCODE_WATCH_MAX_WAIT_MINUTES:-480}"
-FORCE_FALLBACK="${OPENCODE_WATCH_FORCE_FALLBACK:-0}"
-MAINT_START="${OPENCODE_WATCH_MAINTENANCE_START:-03:00}"
-MAINT_END="${OPENCODE_WATCH_MAINTENANCE_END:-04:00}"
-STATE_DIR="${OPENCODE_STATE_DIR:-/root/.local/state/opencode}"
-PORT_HEX="$(printf '%04x' "$PORT")"
+CHECK="${OPENCODE_WATCH_CHECK_SECONDS:-3600}"
+NPM_PKG="${OPENCODE_NPM_PACKAGE:-opencode-ai}"
 
 PID=""
+LAST_CHECK=0
 
 log() { echo "[watchdog] $(date '+%F %T') $*"; }
 
@@ -21,9 +17,17 @@ resolve_bin() {
   [ -n "$BIN" ] || BIN="/root/.opencode/bin/opencode"
 }
 
+semver() {
+  grep -Po '\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?' | head -n1
+}
+
 version() {
   resolve_bin
-  "$BIN" --version 2>/dev/null || true
+  "$BIN" --version 2>/dev/null | semver || true
+}
+
+latest() {
+  npm view "$NPM_PKG" version 2>/dev/null | semver || true
 }
 
 web_running() {
@@ -51,52 +55,6 @@ stop_web() {
   PID=""
 }
 
-has_active_connections() {
-  local local_addr rem_addr state
-  while read -r _ local_addr rem_addr state _; do
-    case "$local_addr" in
-      *:"$PORT_HEX")
-        if [ "$state" = "01" ] && [ "${rem_addr##*:}" != "0000" ]; then
-          return 0
-        fi
-        ;;
-    esac
-  done < /proc/net/tcp 2>/dev/null
-  while read -r _ local_addr rem_addr state _; do
-    case "$local_addr" in
-      *:"$PORT_HEX")
-        if [ "$state" = "01" ] && [ "${rem_addr##*:}" != "0000" ]; then
-          return 0
-        fi
-        ;;
-    esac
-  done < /proc/net/tcp6 2>/dev/null
-  return 1
-}
-
-has_recent_state_write() {
-  [ -d "$STATE_DIR" ] || return 1
-
-  local recent
-  recent="$(find "$STATE_DIR" -type f -mmin "-$IDLE_MIN" -print -quit 2>/dev/null || true)"
-  [ -n "$recent" ]
-}
-
-is_idle() {
-  has_active_connections && return 1
-  has_recent_state_write && return 1
-  return 0
-}
-
-in_maintenance() {
-  [ "$FORCE_FALLBACK" = "0" ] && return 1
-  local now s e
-  now="$(date +%H%M)"
-  s="${MAINT_START/:/}"
-  e="${MAINT_END/:/}"
-  [ "$now" -ge "$s" ] && [ "$now" -lt "$e" ]
-}
-
 shutdown() {
   log "signal received, shutting down"
   stop_web
@@ -107,9 +65,6 @@ trap shutdown TERM INT
 start_web
 LAST="$(version)"
 log "current version: ${LAST:-unknown}"
-
-PENDING=0
-PENDING_SINCE=""
 
 while true; do
   sleep "$POLL"
@@ -122,29 +77,36 @@ while true; do
     continue
   fi
 
+  NOW="$(date +%s)"
+  if [ "$(( NOW - LAST_CHECK ))" -lt "$CHECK" ]; then
+    continue
+  fi
+  LAST_CHECK="$NOW"
+
+  LATEST="$(latest)"
   CUR="$(version)"
 
-  if [ "$PENDING" = "0" ] && [ -n "$CUR" ] && [ "$CUR" != "$LAST" ]; then
-    log "new version detected: $LAST -> $CUR, waiting for idle before restart"
-    PENDING=1
-    PENDING_SINCE="$(date +%s)"
+  if [ -z "$CUR" ]; then
+    log "cannot determine installed version, skip check"
+    continue
   fi
 
-  if [ "$PENDING" = "1" ]; then
-    if is_idle; then
-      log "idle, restarting web to apply version $CUR"
+  log "check: installed=$CUR running=${LAST:-unknown} latest=${LATEST:-unknown}"
+
+  if [ -n "$LATEST" ] && [ "$LATEST" != "$CUR" ]; then
+    log "new version available ($CUR -> $LATEST), upgrading, web will restart immediately"
+    if "$BIN" upgrade; then
       stop_web
       start_web
-      LAST="$CUR"
-      PENDING=0
-      PENDING_SINCE=""
-    elif in_maintenance && [ "$((( $(date +%s) - PENDING_SINCE ) / 60))" -ge "$MAX_WAIT_MIN" ]; then
-      log "pending longer than ${MAX_WAIT_MIN}m, forcing restart in maintenance window"
-      stop_web
-      start_web
-      LAST="$CUR"
-      PENDING=0
-      PENDING_SINCE=""
+      LAST="$(version)"
+      log "upgrade applied, running version: ${LAST:-unknown}"
+    else
+      log "opencode upgrade failed, keeping $CUR, will retry next check"
     fi
+  elif [ -n "$LAST" ] && [ "$CUR" != "$LAST" ]; then
+    log "binary version changed ($LAST -> $CUR), restarting web to apply"
+    stop_web
+    start_web
+    LAST="$(version)"
   fi
 done

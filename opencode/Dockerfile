@@ -3,8 +3,9 @@ FROM debian:trixie-slim
 ARG OPENCODE_VERSION=latest
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        curl \
         ca-certificates \
+        curl \
+        npm \
         tar \
     && rm -rf /var/lib/apt/lists/*
 

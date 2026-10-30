@@ -66,7 +66,7 @@ set -euo pipefail
 - 不得静默回退到虚假的或过期的版本号。
 - 尽可能使用 `chmod +x <项目名>/version.sh` 并本地验证。
 
-opencode 必须使用官方 `anomalyco/opencode` 最新 release API，与官方安装脚本使用的来源保持一致。
+opencode 已升级到 V2，必须使用官方 V2 版本源 `https://opencode.ai/update/api/latest/cli/npm`（与官方安装脚本 `https://opencode.ai/v2/install` 保持一致），并且只接受 `2.x` 版本。注意 `anomalyco/opencode` 的 GitHub `releases/latest` 仍指向 V1，不能用于本仓库。
 
 ## 镜像 Tag 与 CI
 
@@ -122,7 +122,7 @@ opencode 的已知路径如下，除非上游发生变化，否则必须保持�
 /root/.cache/opencode
 ```
 
-`/root/.local/state/opencode` 存放会话和项目数据，容器重建前必须特别提醒用户保留对应的数据卷。
+opencode V2 的会话与项目数据存放在 `/root/.local/share/opencode/opencode.db`（SQLite），日志在 `/root/.local/share/opencode/log/`；`/root/.local/state/opencode` 存放服务注册等运行时状态。容器重建前必须特别提醒用户保留 share 与 state 数据卷。V2 鉴权用户名为 `opencode`，密码通过 `OPENCODE_PASSWORD` 设置。
 
 ## 验证清单
 

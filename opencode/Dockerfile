@@ -10,9 +10,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 RUN if [ "$OPENCODE_VERSION" = "latest" ]; then \
-        curl -fsSL https://opencode.ai/install | bash -s -- --no-modify-path; \
+        curl -fsSL https://opencode.ai/v2/install | bash -s -- --no-modify-path; \
     else \
-        curl -fsSL https://opencode.ai/install | bash -s -- --no-modify-path --version "$OPENCODE_VERSION"; \
+        curl -fsSL https://opencode.ai/v2/install | bash -s -- --no-modify-path --version "$OPENCODE_VERSION"; \
     fi
 
 RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g; s|security.debian.org|mirrors.tuna.tsinghua.edu.cn|g' \

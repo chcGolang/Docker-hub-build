@@ -5,7 +5,7 @@ BIN="/root/.opencode/bin/opencode"
 PORT="${OPENCODE_PORT:-4096}"
 POLL="${OPENCODE_WATCH_POLL_SECONDS:-30}"
 CHECK="${OPENCODE_WATCH_CHECK_SECONDS:-3600}"
-NPM_PKG="${OPENCODE_NPM_PACKAGE:-opencode-ai}"
+UPDATE_API="${OPENCODE_UPDATE_API:-https://opencode.ai/update/api/latest/cli/npm}"
 
 PID=""
 LAST_CHECK=0
@@ -27,7 +27,7 @@ version() {
 }
 
 latest() {
-  npm view "$NPM_PKG" version 2>/dev/null | semver || true
+  curl -fsSL "$UPDATE_API" 2>/dev/null | grep -Po '"version":"\K[^"]+' | semver || true
 }
 
 web_running() {
@@ -41,14 +41,14 @@ web_running() {
 
 start_web() {
   resolve_bin
-  log "starting opencode web (hostname 0.0.0.0, port $PORT)"
-  "$BIN" web --hostname 0.0.0.0 --port "$PORT" &
+  log "starting opencode serve (hostname 0.0.0.0, port $PORT)"
+  "$BIN" serve --hostname 0.0.0.0 --port "$PORT" &
   PID=$!
 }
 
 stop_web() {
   if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
-    log "stopping opencode web (pid $PID)"
+    log "stopping opencode serve (pid $PID)"
     kill "$PID" 2>/dev/null || true
     wait "$PID" 2>/dev/null || true
   fi
@@ -62,6 +62,10 @@ shutdown() {
 }
 trap shutdown TERM INT
 
+if [ -z "${OPENCODE_PASSWORD:-}" ]; then
+  log "warning: OPENCODE_PASSWORD is not set; opencode generates a random password and prints it to the log"
+fi
+
 start_web
 LAST="$(version)"
 log "current version: ${LAST:-unknown}"
@@ -70,7 +74,7 @@ while true; do
   sleep "$POLL"
 
   if ! web_running; then
-    log "web process exited unexpectedly, restarting"
+    log "serve process exited unexpectedly, restarting"
     stop_web
     start_web
     LAST="$(version)"
@@ -94,7 +98,7 @@ while true; do
   log "check: installed=$CUR running=${LAST:-unknown} latest=${LATEST:-unknown}"
 
   if [ -n "$LATEST" ] && [ "$LATEST" != "$CUR" ]; then
-    log "new version available ($CUR -> $LATEST), upgrading, web will restart immediately"
+    log "new version available ($CUR -> $LATEST), upgrading, serve will restart immediately"
     if "$BIN" upgrade; then
       stop_web
       start_web
@@ -104,7 +108,7 @@ while true; do
       log "opencode upgrade failed, keeping $CUR, will retry next check"
     fi
   elif [ -n "$LAST" ] && [ "$CUR" != "$LAST" ]; then
-    log "binary version changed ($LAST -> $CUR), restarting web to apply"
+    log "binary version changed ($LAST -> $CUR), restarting serve to apply"
     stop_web
     start_web
     LAST="$(version)"
